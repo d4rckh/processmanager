@@ -8,6 +8,7 @@
 #include <string>
 #include <sstream>
 #include <stdio.h>
+#include <iomanip>
 
 #include "program_vars.h"
 
@@ -53,11 +54,19 @@ void handle_command(ProgramVars* vars, std::vector<std::string> args) {
 		for (int i = 0; i < modulesCount; i++) {
 			HMODULE pModule = modules[i];
 			TCHAR moduleName[MAX_PATH] = TEXT("<unknown>");
-			
+			MODULEINFO moduleInfo;
+
 			if (!GetModuleBaseName(vars->pHandle, pModule, moduleName, sizeof(moduleName) / sizeof(TCHAR))) 
 			{ continue; }
 			
-			std::wcout << "| " << moduleName << "\n";
+			
+			std::wcout << "| " << moduleName;
+			
+			if (GetModuleInformation(vars->pHandle, pModule, &moduleInfo, sizeof(moduleInfo))) {
+				std::cout << " base: " << "0x" << std::setfill('0') << std::setw(8) << std::hex << moduleInfo.lpBaseOfDll;
+			}
+
+			std::cout << "\n";
 		}
 
 	}
@@ -92,6 +101,20 @@ void handle_command(ProgramVars* vars, std::vector<std::string> args) {
 			std::cout << "[!] Couldn't open process: " << GetLastError() << "\n";
 			vars->pHandle = GetCurrentProcess();
 		}
+	}
+	if (command_name == "memory_counters") {
+		PROCESS_MEMORY_COUNTERS memCounters;
+
+		if (!GetProcessMemoryInfo(vars->pHandle, &memCounters, sizeof(memCounters))) {
+			std::cout << "[!] Couldn't get memory counters (missing PROCESS_VM_READ?)";
+			return;
+		}
+		std::cout << "| Page faults -> " << memCounters.PageFaultCount << "\n|\n";
+
+		std::cout << "| Page file            -> " << memCounters.PagefileUsage << " bytes (peak: " << memCounters.PeakPagefileUsage << ")\n";
+		std::cout << "| Quota Paged Pool     -> " << memCounters.QuotaPagedPoolUsage << " bytes (peak: " << memCounters.QuotaPeakPagedPoolUsage << ")\n";
+		std::cout << "| Quota Non Paged Pool -> " << memCounters.QuotaNonPagedPoolUsage << " bytes (peak: " << memCounters.QuotaPeakNonPagedPoolUsage << ")\n";
+		std::cout << "| Working set size     -> " << memCounters.WorkingSetSize << " bytes (peak: " << memCounters.PeakWorkingSetSize << ")\n";
 	}
 	if (command_name == "exit") {
 		CloseHandle(vars->pHandle);
