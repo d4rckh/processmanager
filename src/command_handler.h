@@ -2,4 +2,6 @@
 #include <vector>
 #include <iostream>
 
-void handle_command(std::vector<std::string> args);
+#include "program_vars.h"
+
+void handle_command(ProgramVars* vars, std::vector<std::string> args);
