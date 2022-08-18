@@ -27,32 +27,36 @@ void handle_command(ProgramVars* vars, std::vector<std::string> args) {
 			HANDLE pHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pID);
 			HMODULE pModule;
 			DWORD cb;
-			if (!EnumProcessModulesEx(
-				pHandle, &pModule, sizeof(HMODULE), &cb, LIST_MODULES_ALL
-			)) {
-				continue;
-			};
 			TCHAR pName[MAX_PATH] = TEXT("<unknown>");
+
+			if (!EnumProcessModulesEx(pHandle, &pModule, sizeof(HMODULE), &cb, LIST_MODULES_ALL)) 
+			{ continue; };			
 			if (!GetModuleBaseName(pHandle, pModule, pName, sizeof(pName)/sizeof(TCHAR))) 
 			{ continue; };
+
 			std::wcout << pID << ": " << pName << "\n";
+
 			CloseHandle(pHandle);
 		}
 	}
 	if (command_name == "modules") {
 		HMODULE modules[1024];
 		DWORD cbNeeded;
+		
 		if (!EnumProcessModulesEx(vars->pHandle, modules, sizeof(modules), &cbNeeded, LIST_MODULES_ALL)) {
 			std::cout << "failed to enum process modules (missing PROCESS_VM_READ?)\n";
 			return;
 		}
+		
 		DWORD modulesCount = cbNeeded / sizeof(HMODULE);
+		
 		for (int i = 0; i < modulesCount; i++) {
 			HMODULE pModule = modules[i];
 			TCHAR moduleName[MAX_PATH] = TEXT("<unknown>");
-			if (!GetModuleBaseName(vars->pHandle, pModule, moduleName, sizeof(moduleName) / sizeof(TCHAR))) {
-				std::cout << "failed to get module base name\n";
-			}
+			
+			if (!GetModuleBaseName(vars->pHandle, pModule, moduleName, sizeof(moduleName) / sizeof(TCHAR))) 
+			{ continue; }
+			
 			std::wcout << "| " << moduleName << "\n";
 		}
 
@@ -67,22 +71,23 @@ void handle_command(ProgramVars* vars, std::vector<std::string> args) {
 		DWORD desiredAccess = PROCESS_QUERY_INFORMATION;
 		std::cout << "\t.. with PROCESS_QUERY_INFORMATION";
 		if (args.size() > 2) {
-			char* ptr;
 			std::stringstream ss(args[2]);
 			std::string access;
 			while (std::getline(ss, access, ',')) {
 				if (access == "PROCESS_ALL_ACCESS") desiredAccess |= PROCESS_ALL_ACCESS;
 				else if (access == "PROCESS_VM_READ") desiredAccess |= PROCESS_VM_READ;
 				else {
-					std::cout << "\n\tignoring unsupported access: " << access << "\n";
+					std::cout << "\n\tIgnoring unsupported access: " << access << "\n";
 					continue;
 				}
 				std::cout << ", " << access;
 			}
 		}
 		std::cout << "\n";
+		
 		CloseHandle(vars->pHandle);
 		vars->pHandle = OpenProcess(desiredAccess, FALSE, pid);
+		
 		if (vars->pHandle == NULL) {
 			std::cout << "[!] Couldn't open process: " << GetLastError() << "\n";
 			vars->pHandle = GetCurrentProcess();
