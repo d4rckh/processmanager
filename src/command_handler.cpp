@@ -58,6 +58,10 @@ void handle_command(ProgramVars* vars, std::vector<std::string> args) {
 
 	}
 	if (command_name == "open_process") {
+		if (args.size() < 2) {
+			std::cout << "[!] Missing process ID\n";
+			return;
+		}
 		DWORD pid = (DWORD)stoi(args[1]);
 		std::cout << "-> Opening process ID: " << pid << "\n";
 		DWORD desiredAccess = PROCESS_QUERY_INFORMATION;
@@ -80,7 +84,7 @@ void handle_command(ProgramVars* vars, std::vector<std::string> args) {
 		CloseHandle(vars->pHandle);
 		vars->pHandle = OpenProcess(desiredAccess, FALSE, pid);
 		if (vars->pHandle == NULL) {
-			std::cout << "-> Couldn't open process: " << GetLastError() << "\n";
+			std::cout << "[!] Couldn't open process: " << GetLastError() << "\n";
 			vars->pHandle = GetCurrentProcess();
 		}
 	}
